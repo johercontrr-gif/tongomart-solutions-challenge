@@ -1,0 +1,360 @@
+{
+  "info": {
+    "_postman_id": "4b7e91c2-3d5a-4f8b-9c1e-2a4d6f8b0c2e",
+    "name": "TongoMart - Last-Mile Delivery Engine (LMD) Integration",
+    "description": "Colección oficial de integración para TongoMart (Uganda). Conecta el e-commerce en Magento y el Sistema POS con la Plataforma Logística (Last-Mile Delivery Engine) para consulta de disponibilidad de ventanas de entrega (Time Slots V2), creación de órdenes con bloqueo de caja para facturación automática POS, consulta de estado de trabajos y liberación automática del checkout en tienda.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Core Fulfilment Flow (Punto 3 Obligatorio)",
+      "description": "Flujo principal de consulta de disponibilidad, creación de orden y consulta puntual del estado del trabajo.",
+      "item": [
+        {
+          "name": "POST Availability (Time Slots) V2",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "function setDynamicAvailabilityDates() {",
+                  "    const now = new Date();",
+                  "    const startIso = now.toISOString();",
+                  "    // Sumar 24 horas (dentro del límite de 7 días posteriores a start)",
+                  "    const endIso = new Date(now.getTime() + (24 * 60 * 60 * 1000)).toISOString();",
+                  "    pm.environment.set(\"start\", startIso);",
+                  "    pm.environment.set(\"end\", endIso);",
+                  "}",
+                  "setDynamicAvailabilityDates();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK or 401 Unauthorized\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const res = pm.response.json();",
+                  "    if (Array.isArray(res) && res.length > 0 && res[0].id) {",
+                  "        pm.environment.set(\"slot_id\", res[0].id);",
+                  "        console.log(\"Slot ID capturado exitosamente:\", res[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"{{start}}\",\n  \"end\": \"{{end}}\",\n  \"slot_size\": 60,\n  \"minimum_slot_size\": 30,\n  \"operational_models_priority\": [\n    \"FULL_SERVICE\",\n    \"PICK_AND_DELIVERY\"\n  ],\n  \"store_reference\": \"1234\",\n  \"currency_code\": \"UGX\",\n  \"is_big_order\": false,\n  \"payment_info\": {\n    \"order_value\": 172.3,\n    \"method\": \"CASH\"\n  },\n  \"origin\": {\n    \"name\": \"TongoMart Acacia Mall Darkstore\",\n    \"address\": \"Plot 14-18 Cooper Road, Kisementi\",\n    \"address_two\": \"Kololo, Ground Floor Loading Bay\",\n    \"country\": \"Uganda\",\n    \"city\": \"Kampala\",\n    \"state\": \"Central Region\",\n    \"zip_code\": \"00256\",\n    \"latitude\": 0.3406,\n    \"longitude\": 32.5862\n  },\n  \"destination\": {\n    \"name\": \"Residencia Cliente Nakasero\",\n    \"address\": \"Plot 24 Nakasero Road\",\n    \"address_two\": \"Apt 4B, Opposite State House Road\",\n    \"description\": \"Portón gris, entregar en recepción\",\n    \"country\": \"Uganda\",\n    \"city\": \"Kampala\",\n    \"state\": \"Central Region\",\n    \"zip_code\": \"00256\",\n    \"latitude\": 0.3264,\n    \"longitude\": 32.5789\n  },\n  \"job_items\": [\n    {\n      \"id\": \"394272\",\n      \"name\": \"Salchicha Viena Chimex\",\n      \"photo_url\": \"https://cdn.tongomart.ug/catalog/394272.png\",\n      \"unit\": \"pz\",\n      \"sub_unit\": \"pz\",\n      \"quantity\": 1,\n      \"sub_quantity\": 1,\n      \"weight\": 0.25,\n      \"volume\": 350,\n      \"dimensions\": {\n        \"x\": 15,\n        \"y\": 8,\n        \"z\": 3\n      },\n      \"price\": 21.9,\n      \"comment\": \"Revisar fecha de vencimiento amplia\",\n      \"attributes\": {\n        \"location\": \"Pasillo 4 - Refrigerados\",\n        \"picking_index\": \"1\",\n        \"category\": \"Carnes Frías\"\n      }\n    },\n    {\n      \"id\": \"404670\",\n      \"name\": \"Tortilla De Harina\",\n      \"photo_url\": \"https://cdn.tongomart.ug/catalog/404670.png\",\n      \"unit\": \"pz\",\n      \"sub_unit\": \"pz\",\n      \"quantity\": 1,\n      \"sub_quantity\": 1,\n      \"weight\": 0.36,\n      \"volume\": 480,\n      \"dimensions\": {\n        \"x\": 20,\n        \"y\": 20,\n        \"z\": 1.2\n      },\n      \"price\": 25.9,\n      \"comment\": \"Empaque sellado sin roturas\",\n      \"attributes\": {\n        \"location\": \"Pasillo 2 - Panadería\",\n        \"picking_index\": \"1\",\n        \"category\": \"Panadería y Tortillas\"\n      }\n    },\n    {\n      \"id\": \"410064\",\n      \"name\": \"Cerveza Lata Clamato Sol\",\n      \"photo_url\": \"https://cdn.tongomart.ug/catalog/410064.png\",\n      \"unit\": \"pz\",\n      \"sub_unit\": \"pz\",\n      \"quantity\": 5,\n      \"sub_quantity\": 5,\n      \"weight\": 0.473,\n      \"volume\": 520,\n      \"dimensions\": {\n        \"x\": 6.6,\n        \"y\": 6.6,\n        \"z\": 15.7\n      },\n      \"price\": 24.9,\n      \"comment\": \"Producto sujeto a verificación de mayoría de edad (+18)\",\n      \"attributes\": {\n        \"location\": \"Pasillo 8 - Licores y Bebidas\",\n        \"picking_index\": \"2\",\n        \"category\": \"Bebidas Alcohólicas\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/jobs/availability/v2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs",
+                "availability",
+                "v2"
+              ]
+            },
+            "description": "Consulta las ventanas horarias (Time Slots) disponibles para un carrito de Magento en TongoMart (Kampala, Uganda). Incluye un Pre-request Script con la función `setDynamicAvailabilityDates()` que calcula dinámicamente `start` (ahora UTC) y `end` (+24 horas)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Create a Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200, 201 or 401 Unauthorized\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 401]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    const createdJobId = res.job_id || res.id;",
+                  "    if (createdJobId) {",
+                  "        pm.environment.set(\"job_id\", createdJobId);",
+                  "        console.log(\"Job ID capturado exitosamente:\", createdJobId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slot_id\": \"{{slot_id}}\",\n  \"client_reference\": \"MAGENTO-UG-100045\",\n  \"client_Reference_number\": \"100045\",\n  \"recipient\": {\n    \"name\": \"Sarah Namukasa\",\n    \"email\": \"sarah.namukasa@example.ug\",\n    \"phone_number\": \"+256772123456\",\n    \"identification\": {\n      \"number\": \"CM900123456789UG\",\n      \"type\": \"NATIONAL_ID\"\n    }\n  },\n  \"origin\": {\n    \"name\": \"TongoMart Acacia Mall Darkstore\",\n    \"address\": \"Plot 14-18 Cooper Road, Kisementi\",\n    \"address_two\": \"Kololo, Ground Floor Loading Bay\",\n    \"country\": \"Uganda\",\n    \"city\": \"Kampala\",\n    \"state\": \"Central Region\",\n    \"zip_code\": \"00256\",\n    \"latitude\": 0.3406,\n    \"longitude\": 32.5862\n  },\n  \"destination\": {\n    \"name\": \"Residencia Cliente Nakasero\",\n    \"address\": \"Plot 24 Nakasero Road\",\n    \"address_two\": \"Apt 4B, Opposite State House Road\",\n    \"description\": \"Portón gris, entregar en recepción\",\n    \"country\": \"Uganda\",\n    \"city\": \"Kampala\",\n    \"state\": \"Central Region\",\n    \"zip_code\": \"00256\",\n    \"latitude\": 0.3264,\n    \"longitude\": 32.5789\n  },\n  \"payment_info\": {\n    \"currency_code\": \"UGX\",\n    \"prices\": {\n      \"subtotal\": 172.3,\n      \"shipping_fee\": 10.0,\n      \"taxes\": 31.01,\n      \"discounts\": 0,\n      \"order_value\": 213.31,\n      \"attributes\": [\n        {\n          \"name\": \"VAT (18% Uganda)\",\n          \"value\": 31.01\n        }\n      ]\n    },\n    \"payment\": {\n      \"method\": \"CASH\",\n      \"blocking_policy\": \"CHECKOUT\",\n      \"payment_status\": \"PENDING\",\n      \"description\": \"Retener paso por caja hasta recibir factura fiscal emitida por el POS de TongoMart tras PICKING_FINISHED\"\n    }\n  },\n  \"job_comment\": \"Entregar con código de confirmación y verificar mayoría de edad (+18) para bebidas alcohólicas.\",\n  \"add_delivery_code\": true,\n  \"job_items\": [\n    {\n      \"id\": \"394272\",\n      \"name\": \"Salchicha Viena Chimex\",\n      \"photo_url\": \"https://cdn.tongomart.ug/catalog/394272.png\",\n      \"unit\": \"pz\",\n      \"sub_unit\": \"pz\",\n      \"quantity\": 1,\n      \"sub_quantity\": 1,\n      \"weight\": 0.25,\n      \"volume\": 350,\n      \"dimensions\": {\n        \"x\": 15,\n        \"y\": 8,\n        \"z\": 3\n      },\n      \"price\": 21.9,\n      \"barcodes\": [\n        \"7501040001012\"\n      ],\n      \"comment\": \"Revisar fecha de vencimiento amplia\",\n      \"attributes\": {\n        \"location\": \"Pasillo 4 - Refrigerados\",\n        \"picking_index\": \"1\",\n        \"category\": \"Carnes Frías\"\n      }\n    },\n    {\n      \"id\": \"404670\",\n      \"name\": \"Tortilla De Harina\",\n      \"photo_url\": \"https://cdn.tongomart.ug/catalog/404670.png\",\n      \"unit\": \"pz\",\n      \"sub_unit\": \"pz\",\n      \"quantity\": 1,\n      \"sub_quantity\": 1,\n      \"weight\": 0.36,\n      \"volume\": 480,\n      \"dimensions\": {\n        \"x\": 20,\n        \"y\": 20,\n        \"z\": 1.2\n      },\n      \"price\": 25.9,\n      \"barcodes\": [\n        \"7501030456789\"\n      ],\n      \"comment\": \"Empaque sellado sin roturas\",\n      \"attributes\": {\n        \"location\": \"Pasillo 2 - Panadería\",\n        \"picking_index\": \"1\",\n        \"category\": \"Panadería y Tortillas\"\n      }\n    },\n    {\n      \"id\": \"410064\",\n      \"name\": \"Cerveza Lata Clamato Sol\",\n      \"photo_url\": \"https://cdn.tongomart.ug/catalog/410064.png\",\n      \"unit\": \"pz\",\n      \"sub_unit\": \"pz\",\n      \"quantity\": 5,\n      \"sub_quantity\": 5,\n      \"weight\": 0.473,\n      \"volume\": 520,\n      \"dimensions\": {\n        \"x\": 6.6,\n        \"y\": 6.6,\n        \"z\": 15.7\n      },\n      \"price\": 24.9,\n      \"barcodes\": [\n        \"7501061611223\"\n      ],\n      \"comment\": \"Producto sujeto a verificación de mayoría de edad (+18)\",\n      \"attributes\": {\n        \"location\": \"Pasillo 8 - Licores y Bebidas\",\n        \"picking_index\": \"2\",\n        \"category\": \"Bebidas Alcohólicas\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/jobs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs"
+              ]
+            },
+            "description": "Crea el trabajo (Job) en la Plataforma Logística consumiendo el `{{slot_id}}` reservado. Configura `payment.blocking_policy = \"CHECKOUT\"` para que el picker no pueda finalizar el paso de caja hasta que el Sistema POS de TongoMart facture los ítems realmente alistados tras el evento `PICKING_FINISHED`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get a Job by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK or 401 Unauthorized\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/jobs/{{job_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs",
+                "{{job_id}}"
+              ]
+            },
+            "description": "Obtiene el detalle consolidado y estado actual del trabajo identificado por `{{job_id}}` para consultas puntuales desde el Backoffice de Magento o atención al cliente."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Automated POS Billing & Slot Validation (Complementario Punto 1)",
+      "description": "Endpoints complementarios identificados en el Punto 1 para garantizar la reserva del slot durante el pago en Magento y ejecutar la facturación automática con el Sistema POS de TongoMart tras `PICKING_FINISHED`.",
+      "item": [
+        {
+          "name": "GET Check Slot Validity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200, 401 or 404\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/jobs/{{slot_id}}/check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs",
+                "{{slot_id}}",
+                "check"
+              ]
+            },
+            "description": "Verifica que el `{{slot_id}}` seleccionado por el usuario en Magento aún no haya expirado antes de procesar la orden."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Extend Slot Expiration Time",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200, 204 or 401 Unauthorized\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 204, 401]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/jobs/{{slot_id}}/extend_expiration_time",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs",
+                "{{slot_id}}",
+                "extend_expiration_time"
+              ]
+            },
+            "description": "Extiende por 15 minutos adicionales la vigencia del `{{slot_id}}` mientras el cliente completa la pasarela de pago en Magento, previniendo errores `417 Expectation Failed` al invocar `POST /jobs`."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update Payment Info & Automated POS Invoice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200, 204 or 401 Unauthorized\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 204, 401]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currency_code\": \"UGX\",\n  \"prices\": {\n    \"subtotal\": 172.3,\n    \"shipping_fee\": 10.0,\n    \"taxes\": 31.01,\n    \"discounts\": 0,\n    \"order_value\": 213.31,\n    \"attributes\": [\n      {\n        \"name\": \"VAT (18% Uganda)\",\n        \"value\": 31.01\n      }\n    ]\n  },\n  \"payment\": {\n    \"method\": \"CASH\",\n    \"blocking_policy\": \"UNBLOCKED\",\n    \"payment_status\": \"SUCCEEDED\",\n    \"description\": \"Facturación POS completada automáticamente. Checkout desbloqueado para despacho con conductor.\"\n  },\n  \"invoice\": {\n    \"reference\": \"POS-UG-INV-8841\",\n    \"attachments\": [\n      \"https://pos.tongomart.ug/invoices/POS-UG-INV-8841.pdf\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/jobs/{{job_id}}/payment_info",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs",
+                "{{job_id}}",
+                "payment_info"
+              ]
+            },
+            "description": "Se ejecuta automáticamente desde el Middleware de TongoMart cuando recibe el Webhook `PICKING_FINISHED` y el Sistema POS emite la factura fiscal definitiva. Actualiza los montos finales (`prices`), adjunta la factura (`invoice`) y cambia `blocking_policy` a `UNBLOCKED` para completar automáticamente el checkout en la aplicación del picker."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,25 @@
+# Ignorar borradores, notas y documentación fuente en Markdown (excepto README.md)
+docs/
+*.md
+!README.md
+
+# Ignorar payloads de prueba y archivos intermedios
+payloads/
+payloads/original_broken_payload.json
+
+# Ignorar archivos temporales, de compilación y del sistema operativo
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db
+node_modules/
+dist/
+build/
+.env
+.vscode/
+.idea/
+
